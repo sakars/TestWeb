@@ -8,4 +8,4 @@
 |  5 |the|
 |  0 |crib|
 
-[here's the index.html file](https://sakars.github.io/TestWeb/)
+[here's the index.html file](https://sakars.github.io/TestWeb/index.html)
