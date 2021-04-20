@@ -1,179 +1,48 @@
-<HTML>
-    <head>
-    <title> o k </title>
-    <style>
-            canvas{
-                position:absolute;
-                top:200px;
-                left:0px;
-            }
-            button{
-                position:absolute;
-                top:0px;
-            }
-            p{
-                position:absolute;
-                top:50px;
-            }
-            </style>
-    <script src="https://unpkg.com/mathjs@9.3.0/lib/browser/math.js"></script>
-    </head>
-    <body>
-    <canvas id=myCanvas2 width=800 height=800 style="background-color: cyan;"> </canvas>
-    <canvas id=myCanvas width=800 height=800 style="background-color: none;"> </canvas>
-    <button onclick="calculateC();">Let's go</button>
-    <p> Hello there draw something in the blue area and press the button!<br> Our robot arm will try to replicate your drawing as well as possible by only rotating its joints<br>The drawing must start and end at the same point</p>
-    <script>
-    myCanvas.width=window.innerWidth-10;
-    myCanvas2.width=window.innerWidth-10;
-    myCanvas.height=window.innerHeight-10;
-    myCanvas2.height=window.innerHeight-10;
-    var w=5;
-    var circlec=1201;
-    var iterationCoof=0.001;
-    var l=5;
-    var ctx = myCanvas.getContext("2d");
-    var ctx2 = myCanvas2.getContext("2d");
-    ctx2.translate(myCanvas2.width/2,myCanvas2.height/2);
-    ctx2.scale(1,-1);
-    ctx.lineWidth=w;
-    ctx2.lineWidth=3;
-    myCanvas.onmousedown=start;
-    myCanvas.onmousemove=move;
-    myCanvas.onmouseup=end;
-    myCanvas.onmouseout=end;
-    var x;
-    var y;
-    var pressed=false;
-    var points=[];
-    var circles=[];
-    function start(e){
-        points=[];
-        ctx.clearRect(0,0,myCanvas.width,myCanvas.height);
-        x = e.pageX;
-        y = e.pageY;
-        x -= myCanvas.offsetLeft;
-        y -= myCanvas.offsetTop;
-        ctx.beginPath();
-        ctx.arc(x,y,w/2,0,Math.PI*2);
-        ctx.fill();
-        points.push([x,y]);
-        pressed=true;
-    }
-    function move(e){
-        if(pressed){
-            x = e.pageX;
-            y = e.pageY;
-            x -= myCanvas.offsetLeft;
-            y -= myCanvas.offsetTop;
-            if(x<0 || x>myCanvas.width || y<0 || y>myCanvas.height){
-                end();
-            }else{
-                ctx.beginPath();
-                ctx.arc(x,y,w/2,0,Math.PI*2);
-                ctx.fill();
-                ctx.beginPath();
-                ctx.moveTo(points[points.length-1][0],points[points.length-1][1]);
-                ctx.lineTo(x,y);
-                ctx.stroke();
-                points.push([x,y]);
-            }
-        }
-    }
-    function end(){
-        if(pressed){
-            pressed=false;
-            ctx.beginPath();
-            ctx.moveTo(points[points.length-1][0],points[points.length-1][1]);
-            ctx.lineTo(points[0][0],points[0][1]);
-            ctx.stroke();
-        }
-    }
-    function coorsToComplex(x,y){
-        x=x-myCanvas.width/2;
-        y=-(y-myCanvas.height/2);
-        return math.complex(x,y);
-    }
-    function complexToCoors(a){
-        var x=a.re;
-        var y=a.im;
-        return [y,x];
-    }
-    function complexLerp(x,y,t){
-        return math.add(math.multiply((1-t),x),math.multiply(t,y));
-    }
-    function calculateC(){
-        ctx.clearRect(0,0,myCanvas.width,myCanvas.height);
-        circles=[];
-        points.forEach((a,i)=>{
-            points[i]=coorsToComplex(a[0],a[1]);
-        });
-        for(var i=0;i<circlec;i++){
-            var n=i-((circlec-1)/2+1);
-            var loc=math.complex(0,0);
-            for(var i2=0;i2<1/iterationCoof;i2++){
-                var stpoint=i2*iterationCoof*points.length;
-                var t=stpoint%1;
-                stpoint=Math.floor(stpoint);
-                edpoint=stpoint+1;
-                var fOft=(points[edpoint]?complexLerp(points[stpoint],points[edpoint],t):points[stpoint]);//f(t)
-                var targetMultiplier=math.exp(math.multiply(-2*n*math.pi*(i2*iterationCoof),math.i));//e^(-2PI*i*t)
-                var out=math.multiply(fOft,targetMultiplier,iterationCoof);//f(t)*e^(-2PI*i*t)*dt
-                loc=math.add(loc,out);
-            }
-            circles.push(complexToCoors(loc));
-        }
-        console.log(circles);
-        ctx.translate(myCanvas.width/2,myCanvas.height/2);
-        ctx.scale(1,-1);
-        /*myCanvas2.width=myCanvas.width;
-        myCanvas2.height=myCanvas.height;
-        myCanvas2.style="position:absolute; top:0px; left:0px;";*/
-        setTimeout(run,0);
-    }
-    var angle=0;
-    var pr;
-    var done=false;
-    var rate=0.075;
-    function run(){
-        if(done){
-            done=false;
-            ctx2.clearRect(-myCanvas.width/2,-myCanvas.height/2,myCanvas.width,myCanvas.height);
-        }
-        ctx.clearRect(-myCanvas.width/2,-myCanvas.height/2,myCanvas.width,myCanvas.height);
-        ctx.lineWidth=1;
-        var tip=[0,0];
-        ctx.beginPath();
-        ctx.moveTo(0,0);
-        var l=0;
-        var loAn;
-        circles.forEach(function(a,i){
-            l=Math.sqrt(a[0]**2+a[1]**2);
-            loAn=Math.atan2(a[0],a[1]);
-            loAn+=angle*(i-((circlec-1)/2+1));
-            tip[0]+=l*Math.cos(loAn);
-            tip[1]+=l*Math.sin(loAn);
-            ctx.lineTo(tip[0],tip[1]);
-        });
-        ctx.stroke();
-        angle+=Math.PI/180*rate;
-        if(pr){
-            ctx2.beginPath();
-            ctx2.moveTo(pr[0],pr[1]);
-            ctx2.lineTo(tip[0],tip[1]);
-            ctx2.stroke();
-        }
-        pr=tip;
-        if(angle>=Math.PI*2){
-            angle-=Math.PI*2;
-            //setTimeout(run,1000);
-            ctx.clearRect(-myCanvas.width/2,-myCanvas.height/2,myCanvas.width,myCanvas.height);
-            done=true;
-        }else{
-            setTimeout(run,0);
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="grid.css">
+    <link rel="stylesheet" href="meme.css">
+</head>
+<body>
+    <div class="grid">
+        <div class="item span-h-3 box">
+            <div class="title">
+                CSS GRID
+            </div>
+        </div>
+        <div class="item box span-v-2 span-h-2 yellow">
+            <div class="center">This is a regular grid item </div>
+        </div>
+        
+        <div class="item span-v-2 box">
+            <a href="draw.html">
+                <div class="cover"><div class="center">Don't you dare touching me or clicking me</div></div>
+                <div class="hello">
+                    <img src="http://reklama.narvesen.lv/berta2/liels/liels.gif" alt="reklama" srcset="" class="reklama">
+                </div>
+            </a>
+        </div>
+        <div class="item box span-v-3">
+            <div class="center">This is a grid item spanning 3 rows</div>
+        </div>
+        <div class="item box span-h-2">
+            <div class="center">This is a grid item spanning 2 columns</div>
+        </div>
+        <div class="item box span-v-2">
+            <div class="center">This is a grid item spanning 2 rows</div>
+        </div>
+        <div class="item box yellow">
+            <div class="center rick"><a href="https://www.youtube.com/watch?v=dQw4w9WgXcQ">Don't click me</a></div>
+        </div>
+        <div class="item box">
+            <div class="center">This is a regular grid item </div>
+        </div>
+    </div>
     
-        }
-    }
-    </script>
-    </body>
-    </html> 
+</body>
+</html>
